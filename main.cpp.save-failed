@@ -1,0 +1,81 @@
+#include <bits/stdc++.h>
+#include "instance.h"
+#include "greedy.h"
+#include "neighborhoodsearch.h"
+#include "localsearch.h"
+#include "output.h"
+using namespace std;
+
+double distortion(double E)
+{
+    return log(E + 1000);
+}
+
+Sol SimulateAnnealing()
+{
+    double r, w = 0.05, T, alpha = 0.998, beta = 1.001, Tf = 0.01, M = 8000, ni = 20;
+    Solution trial; Sol s, temp, bestSol, lcsol;
+    Greedy::reset_proportion();
+    int last_update = 0;
+    for(int i = 1; i <= ni; i++){
+        last_update = 0;
+        Greedy::Builder(trial, 1);
+        s = Greedy::solutionToSol(trial);
+        lcsol = s;
+        T = -w * Objective(s) / log(0.5);
+        //do {
+        T = alpha * T;
+        for(int m = 1; m <= M; m++){
+            for(int i = 0; i < instance.n_job/4; i++)
+                temp = randomNS(temp);
+            LocalSearch::localSearch(temp);
+            double delta = Objective(temp) - Objective(s);
+            if (delta >= 0){
+                s = temp;
+            }   else {
+                r = 1.0 * (mt_rand() % 10000000 + 1)/ 10000000;
+                if (r < exp(delta/ (T)))
+                    s = temp;
+            }
+            if (Objective(s) > Objective(lcsol)) lcsol = s, last_update = m;
+            T = alpha * T;
+        }
+            //M = beta * M;
+       // }  while(T > Tf);
+       cerr << "best iter found : " << last_update << '\n';
+       if (Objective(lcsol) > Objective(bestSol)) bestSol = lcsol;
+       cerr << ">>best sol found: " << Objective(lcsol) << '\n';
+    }
+    return bestSol;
+}
+
+void run()
+{
+    ifstream fileIn;
+    ofstream fileOut("trial/resultSimulateAnnealing.txt");
+    string name;
+    Sol bestSol;
+    fileIn.open("trial/filenames.txt");
+    while(getline(fileIn, name)){
+        instance.read("trial/" + name);
+        cerr << name << '\n';
+        int be = clock(), en;
+        bestSol = SimulateAnnealing();
+        en = clock();
+        fileOut << name << " & " << Objective(bestSol) << " & " << (double)(en-be)/CLOCKS_PER_SEC << " \\" << "\\ \n";
+        fileOut << "\hline \n";
+        cout << Objective(bestSol) << '\n';
+        output("output/" + name, Greedy::solToSoluton(bestSol));
+    }
+}
+int main()
+{
+    string name = "C100-6-50-120-2";
+    instance.read("trial/" + name + ".txt");
+    cerr << instance.n_job << '\n';
+    Solution s = Greedy::solToSoluton(SimulateAnnealing());
+    cerr << "ok" << '\n';
+    output_scr(s);
+    //run();
+    return 0;
+}
