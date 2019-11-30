@@ -1,5 +1,5 @@
 # tower-defense-OOP
-Project for OOP cource.
+Project for OOP course.
 
 Instruction:
 
